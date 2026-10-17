@@ -8,4 +8,5 @@ import '../app/travel-cover.css';
 import '../app/motion-home.css';
 
 const repository=createBrowserJournal();
-createRoot(document.getElementById('root')!).render(<Journal signedIn name="Traveler" repository={repository}/>);
+const starterAlbums=[{place:'Panchpokhari',country:''}];
+createRoot(document.getElementById('root')!).render(<Journal signedIn name="Traveler" repository={repository} starterAlbums={starterAlbums}/>);
