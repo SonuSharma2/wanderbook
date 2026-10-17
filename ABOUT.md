@@ -10,6 +10,7 @@ A private travel journal for photos, trekking, wandering, and food discoveries.
 - Pin locations on a world map, enter precise coordinates, use your current location with browser permission, and open locations in OpenStreetMap.
 - Browse place stamps in a personal passport and revisit a random memory.
 - Animated place albums on the homepage group photos from all visits to the same location and country. Open an album to browse its photographs, change visit order, open a full-screen gallery, and jump to the original story. The album shelf supports swiping, previous/next controls, pause/play, and reduced-motion preferences.
+- The sample journal contains six illustrative place albums, seven memories, and 19 photo placements using 12 image files. It is separate from the owner's records. Gallery order follows the selected visit order and supports arrow keys and horizontal swipes.
 - Download a complete JSON backup including photo bytes, then restore it as new memories.
 - Responsive layouts, keyboard-accessible dialogs, photo gallery controls, reduced-motion support, and sample content clearly separated from the personal journal.
 
@@ -24,6 +25,8 @@ Use Node 22.13 or newer. Install with `npm run install:ci`, then run `npm run de
 The hosting manifest declares `DB` and `BUCKET`. SQL migrations and Drizzle metadata are tracked in `drizzle/`. After the initial build, apply the SQL locally using the Wrangler D1 command documented in the starter README. Local storage is separate from hosted storage.
 
 Checks used: `node node_modules/typescript/bin/tsc --noEmit`, the Sites production build helper, and `node scripts/smoke-test.mjs` against the running local dev server. The integration script creates and removes only its own disposable local record. It checks authentication, upload and byte-for-byte retrieval, persistence, edits, validation, cross-origin write rejection, deletion, and file cleanup.
+
+`node scripts/run-album-ui-check.mjs` checks the React interactions in Happy DOM: cover cycling, automatic shelf movement, pause/play, hover/focus pausing, reduced-motion and page-visibility behavior, manual controls, place opening, repeat-visit photo ordering, story links, fullscreen arrows/wrapping, keyboard controls, touch swipes, Escape, and cleanup. This is a DOM emulation check; it does not assess rendered appearance or animation smoothness. `node scripts/photo-upload-check.mjs` decodes and uploads every JPEG asset through the real local API, checks exact retrieval from local R2, verifies cross-visit grouping, then removes its disposable local records.
 
 ## Assets
 

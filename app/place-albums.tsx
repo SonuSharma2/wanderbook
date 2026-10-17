@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, ArrowUpRight, Camera, ChevronLeft, ChevronRight, Compass, ImagePlus, MapPin, Pause, Play, Plus, X } from 'lucide-react';
-import { albumImage, type PlaceAlbum } from './albums';
+import { albumImage, type AlbumPhoto, type PlaceAlbum } from './albums';
 import type { Entry } from './journal';
 
 export function PlaceAlbums({ albums, sample, loading, onOpen, onAdd }: {
@@ -57,7 +57,7 @@ export function PlaceAlbums({ albums, sample, loading, onOpen, onAdd }: {
 
   const animate = playing && !interacting && !reducedMotion && !hidden;
   return <section id="place-albums" className={'place-albums ' + (animate ? 'albums-moving' : 'albums-still')} aria-label="Photo albums by place">
-    <div className="albums-heading"><div><div className="eyebrow green">A PLACE. A FEELING. A WHOLE ALBUM.</div><h2>Your world, <em>in photographs.</em></h2><p>{sample ? 'A few sample places to get your imagination going.' : 'Pick a place. Step back into every moment you kept there.'}</p></div><div className="album-controls">
+    <div className="albums-heading"><div><div className="eyebrow green">A PLACE. A FEELING. A WHOLE ALBUM.</div><h2>Your world, <em>in photographs.</em></h2><p>{sample ? 'Explore six sample albums. Photographs are illustrative.' : 'Pick a place. Step back into every moment you kept there.'}</p></div><div className="album-controls">
       <button className="album-motion" type="button" onClick={() => setPlaying(!playing)} aria-label={playing ? 'Pause album animations' : 'Play album animations'} aria-pressed={!playing}>{playing ? <Pause size={14}/> : <Play size={14}/>}<span>{playing ? 'Pause' : 'Play'}</span></button>
       {overflow && <><button type="button" className="album-arrow" onClick={() => go(-1)} aria-label="Previous place albums"><ChevronLeft size={18}/></button><button type="button" className="album-arrow" onClick={() => go(1)} aria-label="Next place albums"><ChevronRight size={18}/></button></>}
     </div></div>
@@ -75,11 +75,11 @@ export function PlaceAlbums({ albums, sample, loading, onOpen, onAdd }: {
   </section>;
 }
 
-export function AlbumContents({album,onClose,onPhoto,onStory,onAdd}:{album:PlaceAlbum;onClose:()=>void;onPhoto:(index:number)=>void;onStory:(entry:Entry)=>void;onAdd:()=>void}){
+export function AlbumContents({album,onClose,onPhoto,onStory,onAdd}:{album:PlaceAlbum;onClose:()=>void;onPhoto:(index:number,items:AlbumPhoto[])=>void;onStory:(entry:Entry)=>void;onAdd:()=>void}){
   const [sort,setSort]=useState('newest');
   const photos=album.photos.map((photo,index)=>({...photo,index}));
   if(sort==='oldest')photos.sort((a,b)=>a.entry.date.localeCompare(b.entry.date)||a.index-b.index);
   return <><div className="album-dialog-heading"><div><div className="eyebrow green"><MapPin size={12}/>{album.country || 'YOUR PERSONAL TRAVEL ALBUM'}</div><h2>{album.place}</h2><p>{album.photos.length} photographs <span>·</span> {album.memories.length} {album.memories.length===1?'memory':'memories'} <span>·</span> A little piece of your world.</p></div><button className="icon-btn" type="button" onClick={onClose} aria-label="Close place album"><X size={23}/></button></div>
-  {album.photos.length ? <><div className="album-gallery-toolbar"><span><Camera size={15}/> The moments, all together.</span><label>Photo order <select value={sort} onChange={event=>setSort(event.target.value)}><option value="newest">Newest visit first</option><option value="oldest">Oldest visit first</option></select></label></div><div className="album-photo-grid">{photos.map(({entry,photo,index})=><figure key={`${entry.id}-${photo.id}`}><button className="album-photo-button" onClick={()=>onPhoto(index)} aria-label={`Open photo ${index+1}: ${photo.caption || entry.title}`}><img src={albumImage({entry,photo})} alt={photo.caption || entry.title} loading="lazy"/><span><ArrowUpRight size={19}/></span></button><figcaption>{photo.caption&&<p>{photo.caption}</p>}<button onClick={()=>onStory(entry)}>{entry.title} <ArrowUpRight size={12}/></button><time dateTime={entry.date}>{new Date(entry.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</time></figcaption></figure>)}</div></> : <div className="empty-state"><Camera size={35} strokeWidth={1}/><h3>The place is here. The photos are next.</h3><p>Add a photograph to a memory from {album.place} to fill this album.</p><button className="primary" onClick={onAdd}><Plus size={15}/> Add a memory</button></div>}
+  {album.photos.length ? <><div className="album-gallery-toolbar"><span><Camera size={15}/> The moments, all together.</span><label>Photo order <select value={sort} onChange={event=>setSort(event.target.value)}><option value="newest">Newest visit first</option><option value="oldest">Oldest visit first</option></select></label></div><div className="album-photo-grid">{photos.map(({entry,photo,index},position)=><figure key={`${entry.id}-${photo.id}`}><button className="album-photo-button" onClick={()=>onPhoto(position,photos)} aria-label={`Open photo ${position+1}: ${photo.caption || entry.title}`}><img src={albumImage({entry,photo})} alt={photo.caption || entry.title} loading="lazy"/><span><ArrowUpRight size={19}/></span></button><figcaption>{photo.caption&&<p>{photo.caption}</p>}<button onClick={()=>onStory(entry)}>{entry.title} <ArrowUpRight size={12}/></button><time dateTime={entry.date}>{new Date(entry.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</time></figcaption></figure>)}</div></> : <div className="empty-state"><Camera size={35} strokeWidth={1}/><h3>The place is here. The photos are next.</h3><p>Add a photograph to a memory from {album.place} to fill this album.</p><button className="primary" onClick={onAdd}><Plus size={15}/> Add a memory</button></div>}
   <div className="album-dialog-footer"><span>Every photograph has a story. Yours is still unfolding.</span><button className="text-button" onClick={onClose}>Back to my places <ArrowRight size={15}/></button></div></>;
 }
