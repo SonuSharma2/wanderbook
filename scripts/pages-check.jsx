@@ -7,10 +7,12 @@ import { createBrowserJournal } from '../github-pages/browser-journal';
 import Journal from '../app/journal';
 import { assetUrl } from '../app/assets';
 import { albumImage, groupPlaceAlbums, mergeAlbumFolders } from '../app/albums';
+import { CLOUD_JOURNAL_URL, syncedJournalUrl } from '../app/cloud-link';
 
 assert.equal(assetUrl('/photos/trek.jpg'),'/wanderbook/photos/trek.jpg');
 assert.equal(assetUrl('blob:local-photo'),'blob:local-photo');
 assert.equal(assetUrl('https://example.com/photo.jpg'),'https://example.com/photo.jpg');
+assert.equal(syncedJournalUrl('?album=Panchpokhari&device=1&untrusted=ignored'),CLOUD_JOURNAL_URL+'/?album=Panchpokhari','cloud links preserve album selection and omit device-only parameters');
 
 const bytes=await readFile('public/photos/trek.jpg');
 const databaseName='wanderbook-test-'+crypto.randomUUID();
@@ -134,8 +136,47 @@ await act(async()=>restoreInput.dispatchEvent(new window.Event('change',{bubbles
 assert.equal(container.querySelectorAll('.place-album').length,3,'restoring an album-only backup restores empty folders');
 assert.equal((await reopened.list()).length,1,'restoring empty folders leaves saved photos intact');
 assert.equal(backendRequests,0,'no cloud API is called in Pages mode');
+
+// Cloud UI reads server records rather than the prior device's localStorage.
+let cloudEntries=[],cloudFolders=[];
+globalThis.fetch=async(path,options={})=>{
+ if(path==='/api/entries'){
+  if(options.method==='POST'){const entry=JSON.parse(options.body.get('entry'));cloudEntries=[entry,...cloudEntries.filter(saved=>saved.id!==entry.id)];return Response.json(entry)}
+  return Response.json(cloudEntries);
+ }
+ if(path==='/api/albums'){
+  if(options.method==='POST'){const folder=JSON.parse(options.body);cloudFolders.push(folder);return Response.json(folder)}
+  return Response.json(cloudFolders);
+ }
+ return originalFetch(path,options);
+};
+window.location.href=CLOUD_JOURNAL_URL+'/?restore=1';
+await act(async()=>root.render(<Journal key="cloud-laptop" signedIn name="My account" starterAlbums={starterAlbums}/>));await settle();
+assert.ok(container.querySelector('.cloud-storage-note'),'cloud account status replaces the device notice');
+assert.equal(container.querySelectorAll('.place-album').length,1,'device folders are not mistaken for cloud folders');
+assert.ok(container.querySelector('dialog[aria-label="Import device journal"]'),'migration link opens the import flow');
+const cloudImport=container.querySelector('footer input[type="file"]');
+Object.defineProperty(cloudImport,'files',{configurable:true,value:[new File([JSON.stringify({app:'wanderbook',version:1,albums:[{place:'Synced folder',country:'Nepal'}],entries:[{...entry,location:'Panchpokhari',photos:[{id:entry.photos[0].id,caption:'Imported cloud photo',dataUrl:'data:image/jpeg;base64,'+bytes.toString('base64')}]}]})],'device.json',{type:'application/json'})]});
+await act(async()=>cloudImport.dispatchEvent(new window.Event('change',{bubbles:true})));await settle();
+assert.equal(cloudEntries.length,1,'device backup uploads entries into the signed-in cloud repository');
+assert.equal(cloudEntries[0].id,entry.id,'migration keeps the original memory ID so a retry updates the same record');
+assert.equal(cloudEntries[0].photos[0].id,entry.photos[0].id,'migration keeps stable photo IDs');
+assert.equal(cloudFolders[0].place,'Synced folder','device backup saves folder metadata in the cloud');
+assert.equal(container.querySelector('dialog[aria-label="Import device journal"]'),null,'successful migration closes the import dialog');
+await act(async()=>root.render(<Journal key="cloud-phone" signedIn name="My account" starterAlbums={starterAlbums}/>));await settle();
+assert.equal(container.querySelectorAll('.memory-card').length,1,'a second cloud UI instance loads the server journal');
+assert.equal(container.querySelectorAll('.place-album').length,2,'a second cloud UI instance loads server albums');
+cloudEntries.push({...cloudEntries[0],id:crypto.randomUUID(),title:'A phone upload'});
+await click(container.querySelector('[aria-label="Refresh cloud journal"]'));
+assert.equal(container.querySelectorAll('.memory-card').length,2,'refresh retrieves new records from another device');
+cloudEntries=[];
+await act(async()=>window.dispatchEvent(new window.Event('focus')));await settle();
+assert.equal(container.querySelectorAll('.memory-card').length,0,'returning to the tab refreshes cloud records');
+globalThis.fetch=async()=>Response.json({error:'Session expired'},{status:401});
+await click(container.querySelector('[aria-label="Refresh cloud journal"]'));
+assert.match(container.querySelector('[role="alert"]').textContent,/session expired/i,'expired sessions are surfaced instead of showing a false sync success');
 await act(async()=>root.unmount());
 assert.equal(intervalCallbacks.size,0,'page animation timers clean up');
 globalThis.fetch=originalFetch;
 window.happyDOM.abort();
-console.log('PASS: Pages paths, JPEG persistence, edits, favorites, photo order/removal, rollback, restore, deletion, empty albums, direct links, album upload, album creation/reopening, story availability and zero backend requests. DOM, IndexedDB and image decoding/canvas are emulated.');
+console.log('PASS: device journal persistence, albums/uploads, cloud migration/import, server folders, second cloud UI instance, manual/focus refresh, expired-session feedback, links and timer cleanup. DOM, IndexedDB, cloud HTTP and image decoding/canvas are emulated.');
