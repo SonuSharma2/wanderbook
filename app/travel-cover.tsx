@@ -5,9 +5,9 @@ import { ArrowDown, ArrowUpRight, Camera, Compass, MapPin, MoveHorizontal, Pause
 import { albumImage, type PlaceAlbum } from './albums';
 import { useSweep } from './use-sweep';
 
-export default function TravelCover({albums,sample,onAdd,onOpen,onBrowse,onSwitch}:{
+export default function TravelCover({albums,sample,onAdd,onOpen,onBrowse,onSwitch,readOnly=false}:{
  albums:PlaceAlbum[];sample:boolean;memories:number;photos:number;places:number;
- onAdd:()=>void;onOpen:(album:PlaceAlbum)=>void;onBrowse:()=>void;onStories?:(key:string)=>void;onSwitch?:()=>void;
+ onAdd:()=>void;onOpen:(album:PlaceAlbum)=>void;onBrowse:()=>void;onStories?:(key:string)=>void;onSwitch?:()=>void;readOnly?:boolean;
 }){
  const choices=useMemo(()=>albums.filter(album=>album.photos.length).slice(0,4),[albums]);
  const [selected,setSelected]=useState(0),[playing,setPlaying]=useState(true),[reduced,setReduced]=useState(false),[hidden,setHidden]=useState(false);
@@ -34,7 +34,7 @@ export default function TravelCover({albums,sample,onAdd,onOpen,onBrowse,onSwitc
    <div className="motion-content">
     <div className="motion-topline"><span>{sample?'Sample photos':''}</span><div>{onSwitch&&<button onClick={onSwitch}>{sample?'My journal':'Sample'}<ArrowUpRight size={14}/></button>}<button className="motion-toggle" aria-label={playing?'Pause cover animations':'Play cover animations'} aria-pressed={playing} onClick={()=>setPlaying(value=>!value)}>{playing?<Pause size={13}/>:<Play size={13}/>}</button></div></div>
     <div className="motion-main">
-     <div className="motion-copy"><h1><span>Places worth</span><em>keeping.</em></h1><div className="motion-actions"><button className="motion-add" onClick={onAdd}><Plus size={17}/>Add a memory<span><ArrowUpRight size={19}/></span></button></div></div>
+     <div className="motion-copy"><h1><span>Places worth</span><em>keeping.</em></h1><div className="motion-actions"><button className="motion-add" onClick={onAdd}>{readOnly?<ArrowDown size={17}/>:<Plus size={17}/>} {readOnly?'Browse albums':'Add a memory'}<span><ArrowUpRight size={19}/></span></button></div></div>
      {active?<div className="motion-photo-desk">
       <svg className="motion-route" viewBox="0 0 600 520" fill="none" aria-hidden="true"><path d="M30 410C-20 240 450 510 490 300S80 45 160 110"/><circle cx="30" cy="410" r="5"/><circle cx="160" cy="110" r="5"/></svg>
       {upcoming&&choices.length>1&&<button className="motion-orbit-card orbit-next" onClick={()=>sweep.step(1)} aria-label={`Preview next place: ${upcoming.place}`}><img src={albumImage(upcoming.photos[0])} alt=""/><span>{upcoming.place}<ArrowUpRight size={13}/></span></button>}
@@ -47,7 +47,7 @@ export default function TravelCover({albums,sample,onAdd,onOpen,onBrowse,onSwitc
       {companion&&<button className="motion-orbit-card orbit-moment" onClick={()=>onOpen(active)} aria-label={`Peek inside ${active.place}`}><img src={albumImage(companion)} alt=""/></button>}
       <div className="motion-seal" aria-hidden="true"><svg viewBox="0 0 100 100" fill="none"><circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth=".6" strokeDasharray="2 8"/><circle cx="50" cy="50" r="33" stroke="currentColor" strokeWidth=".4"/></svg><Compass size={31} strokeWidth={1.2}/></div>
 
-     </div>:<div className="home-first-memory motion-empty"><div className="home-empty-frame"><Camera size={42} strokeWidth={1}/><button className="motion-empty-add" onClick={onAdd}>Add photos <ArrowUpRight size={17}/></button></div></div>}
+     </div>:<div className="home-first-memory motion-empty"><div className="home-empty-frame"><Camera size={42} strokeWidth={1}/><button className="motion-empty-add" onClick={onAdd}>{readOnly?'Browse albums':'Add photos'} <ArrowUpRight size={17}/></button></div></div>}
     </div>
     <div className="motion-bottom"><button className="motion-scroll" onClick={onBrowse} aria-label="Browse albums" title="Browse albums"><span><ArrowDown size={19}/></span></button></div>
    </div>
