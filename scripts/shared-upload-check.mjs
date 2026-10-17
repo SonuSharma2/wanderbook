@@ -10,7 +10,7 @@ async function credentials(){
   let data='';
   process.stdin.on('data',chunk=>{
    data+=chunk;
-   if(data.includes('\n')){
+   if(data.includes('\n')||data.includes('\r')){
     process.stdin.pause();process.stdin.setRawMode?.(false);
     try{resolve(JSON.parse(data.trim()))}catch{reject(Error('Invalid upload check input.'))}
    }
@@ -22,8 +22,8 @@ if(hosted)assert.equal(origin,'https://wanderbook-travel-stories.copperbowl.chat
 const browserHeaders={'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1','Accept':'application/json'};
 let cookie='';
 if(!hosted){const login=await fetch(origin+'/signin-with-chatgpt?return_to=/',{redirect:'manual'});cookie=login.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ');assert.ok(cookie)}
-const owned=(path,options={})=>fetch(origin+path,{...options,headers:{...browserHeaders,...options.headers,Origin:origin,...(hosted?{Authorization:'Bearer '+key}:{Cookie:cookie})}});
-const guest=(path,options={})=>fetch(origin+path,{...options,headers:{...browserHeaders,...options.headers}});
+const owned=(path,options={})=>fetch(origin+path,{...options,signal:AbortSignal.timeout(30000),headers:{...browserHeaders,...options.headers,Origin:origin,...(hosted?{Authorization:'Bearer '+key}:{Cookie:cookie})}});
+const guest=(path,options={})=>fetch(origin+path,{...options,signal:AbortSignal.timeout(30000),headers:{...browserHeaders,...options.headers}});
 const bytes=await readFile('public/photos/trek.jpg'),created=[];
 const privatePlace='Private upload check '+crypto.randomUUID();let shareCreated=false;
 async function upload(location){
