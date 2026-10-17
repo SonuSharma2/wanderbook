@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowUpRight, Camera, ChevronLeft, ChevronRight, Compass, MapPin, MoveHorizontal, Pause, Play, Plus } from 'lucide-react';
+import { ArrowDown, ArrowUpRight, Camera, Compass, MapPin, MoveHorizontal, Pause, Play, Plus } from 'lucide-react';
 import { albumImage, type PlaceAlbum } from './albums';
 import { useSweep } from './use-sweep';
 
@@ -52,7 +52,6 @@ export default function TravelCover({albums,sample,onAdd,onOpen,onBrowse,onSwitc
     <div className="motion-bottom"><button className="motion-scroll" onClick={onBrowse} aria-label="Browse albums" title="Browse albums"><span><ArrowDown size={19}/></span></button></div>
    </div>
   </div>
-  {active&&<div className="motion-dock"><div className="cover-destinations" aria-label="Choose a featured place">{choices.map((album,index)=><button key={album.key} className={'cover-destination '+(selected===index?'active':'')} aria-pressed={selected===index} aria-label={`Feature ${album.place}`} onClick={()=>{if(index!==selected)sweep.select(()=>setSelected(index),index>selected?1:-1)}}><img src={albumImage(album.photos[0])} alt=""/><span><strong>{album.place}</strong></span><ArrowUpRight size={15}/></button>)}</div><div className="motion-dock-arrows"><button aria-label="Previous featured place" onClick={()=>sweep.step(-1)}><ChevronLeft size={17}/></button><button aria-label="Next featured place" onClick={()=>sweep.step(1)}><ChevronRight size={17}/></button></div></div>}
 
 
  </section>;

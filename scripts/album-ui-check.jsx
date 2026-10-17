@@ -123,9 +123,9 @@ await pointer(cover,'pointerdown',200);await pointer(cover,'pointermove',210);aw
 assert.equal(coverTitle(),'Nagarkot','tiny pull settles back');
 await pointer(cover,'pointerdown',400);await pointer(cover,'pointermove',150);await pointer(cover,'pointercancel',150);await finishSweep();
 assert.equal(coverTitle(),'Nagarkot','cancelled pull keeps the album');
-await sweepClick(button('Previous featured place'));assert.equal(coverTitle(),'Annapurna Base Camp','previous wraps to last destination');
+await act(async()=>cover.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true})));await finishSweep();assert.equal(coverTitle(),'Annapurna Base Camp','previous wraps to last destination');
 await act(async()=>{media.matches=true;media.dispatchEvent(new window.Event('change'))});
-await click(button('Next featured place'));assert.equal(coverTitle(),'Nagarkot','reduced-motion navigation is immediate');assert.ok(container.querySelector('.motion-paused'),'reduced motion pauses the scene');
+await act(async()=>cover.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true})));assert.equal(coverTitle(),'Nagarkot','reduced-motion navigation is immediate');assert.ok(container.querySelector('.motion-paused'),'reduced motion pauses the scene');
 await render(<div/>);media.matches=false;
 
 let firstMemory=false;
