@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./travel-cover.css";
+import "./gestures-stories.css";
 
 export const metadata: Metadata = {
   title: "Wanderbook — a little further, a little fuller",

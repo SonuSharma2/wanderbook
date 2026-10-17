@@ -12,13 +12,15 @@ The homepage uses an editorial split cover with warm paper tones, forest-green t
 - Pin locations on a world map, enter precise coordinates, use your current location with browser permission, and open locations in OpenStreetMap.
 - Browse place stamps in a personal passport and revisit a random memory.
 - Animated place albums on the homepage group photos from all visits to the same location and country. Open an album to browse its photographs, change visit order, open a full-screen gallery, and jump to the original story. The album shelf supports swiping, previous/next controls, pause/play, and reduced-motion preferences.
+- Pull the featured cover or a fullscreen gallery photograph with a mouse or touch: the card follows the gesture, tilts, and sweeps away to reveal the next place or photo. Short and cancelled pulls settle back; arrows and keyboard controls provide the same navigation.
+- Stories circles open private, fullscreen photo sequences grouped by place, with progress segments, captions, dates, blurred image backdrops, previous/next controls, and album links. Loaded photographs advance every 5.5 seconds. Tap left/right for photos, swipe horizontally for another place, hold to pause, or pull down to close. Autoplay pauses in background tabs; reduced-motion users start paused. Stories remain available with the journal, without a 24-hour expiry or an Instagram account connection.
 - The sample journal contains six illustrative place albums, seven memories, and 19 photo placements using 12 image files. It is separate from the owner's records. Gallery order follows the selected visit order and supports arrow keys and horizontal swipes.
 - Download a complete JSON backup including photo bytes, then restore it as new memories.
 - Responsive layouts, keyboard-accessible dialogs, photo gallery controls, reduced-motion support, and sample content clearly separated from the personal journal.
 
 ## Data and privacy
 
-The site starts owner-private. Hosted authentication is provided by Sites. API operations require a signed-in user and scope every record and photo to that user's stable Site identity. Structured entries live in D1; photos live in R2. Browser storage only remembers whether to show the sample or personal journal. Deleting a memory permanently removes its photos; the UI asks for confirmation first. Backups contain your photos and stories, so keep downloaded files somewhere private.
+The site starts owner-private. Hosted authentication is provided by Sites. API operations require a signed-in user and scope every record and photo to that user's stable Site identity. Structured entries live in D1; photos live in R2. Browser storage remembers the sample/personal view and which place stories were completed on this browser. Deleting a memory permanently removes its photos; the UI asks for confirmation first. Backups contain your photos and stories, so keep downloaded files somewhere private.
 
 ## Development
 
@@ -28,7 +30,7 @@ The hosting manifest declares `DB` and `BUCKET`. SQL migrations and Drizzle meta
 
 Checks used: `node node_modules/typescript/bin/tsc --noEmit`, the Sites production build helper, and `node scripts/smoke-test.mjs` against the running local dev server. The integration script creates and removes only its own disposable local record. It checks authentication, upload and byte-for-byte retrieval, persistence, edits, validation, cross-origin write rejection, deletion, and file cleanup.
 
-`node scripts/run-album-ui-check.mjs` checks the React interactions in Happy DOM: cover cycling, automatic shelf movement, pause/play, hover/focus pausing, reduced-motion and page-visibility behavior, manual controls, place opening, repeat-visit photo ordering, story links, fullscreen arrows/wrapping, keyboard controls, touch swipes, Escape, and cleanup. This is a DOM emulation check; it does not assess rendered appearance or animation smoothness. `node scripts/photo-upload-check.mjs` decodes and uploads every JPEG asset through the real local API, checks exact retrieval from local R2, verifies cross-visit grouping, then removes its disposable local records.
+`node scripts/run-album-ui-check.mjs` checks the React interactions in Happy DOM: cover cycling, automatic shelf movement, pause/play, hover/focus pausing, reduced-motion and page-visibility behavior, controls, place opening, repeat-visit photo ordering, story links, fullscreen arrows/wrapping, pointer drag tracking, sweep phases, short/cancelled pulls, Stories autoplay, hold/pause/play, photo taps, place swipes, progress seeking, failed-photo skipping, completed-view status, Escape, and cleanup. This is a DOM emulation check; rendered appearance and animation are also checked manually in Chrome. `node scripts/photo-upload-check.mjs` decodes and uploads every JPEG asset through the real local API, checks exact retrieval from local R2, verifies cross-visit grouping, then removes its disposable local records.
 
 ## Assets
 

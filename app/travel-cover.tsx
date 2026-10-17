@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowRight, ArrowUpRight, BookOpen, Camera, Compass, MapPin, Plus, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUpRight, BookOpen, Camera, ChevronLeft, ChevronRight, Compass, MapPin, MoveHorizontal, Play, Plus, Sparkles } from 'lucide-react';
 import { albumImage, type PlaceAlbum } from './albums';
+import { useSweep } from './use-sweep';
 
-export default function TravelCover({albums,sample,memories,photos,places,onAdd,onOpen,onBrowse}:{
+export default function TravelCover({albums,sample,memories,photos,places,onAdd,onOpen,onBrowse,onStories}:{
  albums:PlaceAlbum[];sample:boolean;memories:number;photos:number;places:number;
- onAdd:()=>void;onOpen:(album:PlaceAlbum)=>void;onBrowse:()=>void;
+ onAdd:()=>void;onOpen:(album:PlaceAlbum)=>void;onBrowse:()=>void;onStories?:(key:string)=>void;
 }){
  const choices=useMemo(()=>{
   const available=albums.filter(album=>album.photos.length);
@@ -18,6 +19,8 @@ export default function TravelCover({albums,sample,memories,photos,places,onAdd,
  const active=choices[selected]||choices[0];
  const companion=active?.photos[1];
  const scene=active?albumImage(active.photos[0]):'/photos/trek.jpg';
+ const sweep=useSweep({enabled:choices.length>1,onStep:direction=>setSelected(previous=>(previous+direction+choices.length)%choices.length)});
+ const upcoming=choices[(selected+sweep.direction+choices.length)%choices.length];
 
  return <>
  <section className="travel-cover" aria-label="Your travel journal cover">
@@ -30,13 +33,18 @@ export default function TravelCover({albums,sample,memories,photos,places,onAdd,
    <div className="cover-bottom-note"><Compass size={17} strokeWidth={1.3}/><span>GO A LITTLE FURTHER. KEEP A LITTLE MORE.</span></div>
   </div>
   <div className="cover-visual">
-   <div className="cover-photo-frame"><img key={scene} className="cover-destination-photo" src={scene} alt={active?`${active.place} — ${active.photos[0].photo.caption||'travel memories'}`:'Trekkers walking through a mountain landscape'} fetchPriority="high"/>
+   <div className="cover-photo-frame">
+    {upcoming&&<div className="cover-swipe-preview" aria-hidden="true"><img src={albumImage(upcoming.photos[0])} alt=""/><span>{upcoming.place}</span></div>}
+    <div className={'cover-swipe-stage sweep-'+sweep.phase} {...sweep.props} tabIndex={choices.length>1?0:undefined} role="group" aria-label="Featured destination. Drag left or right, or use the arrow keys to change place." onKeyDown={event=>{if(event.key==='ArrowRight'||event.key==='ArrowLeft'){event.preventDefault();sweep.step(event.key==='ArrowRight'?1:-1)}}}>
+    <div className="cover-swipe-card sweep-card" style={sweep.style}><img key={scene} draggable={false} className="cover-destination-photo" src={scene} alt={active?`${active.place} — ${active.photos[0].photo.caption||'travel memories'}`:'Trekkers walking through a mountain landscape'} fetchPriority="high"/>
     <div className="cover-photo-shade"/>
     <div className="cover-photo-topline"><span className="cover-collection-label"><span/>{sample?'THE SAMPLE COLLECTION':'YOUR PERSONAL COLLECTION'}</span><span className="cover-photo-index">{String(selected+1).padStart(2,'0')} <span>/</span> {String(choices.length||1).padStart(2,'0')}</span></div>
-    {companion&&<button className="cover-postcard" onClick={()=>active&&onOpen(active)} aria-label={`Peek inside ${active?.place}`}><img src={albumImage(companion)} alt=""/><span>One for the memory book.</span></button>}
     <div className="cover-place"><div><span className="cover-place-country"><MapPin size={13}/>{active?.country||'THE WORLD IS WAITING'}</span><h2>{active?.place||'Your next adventure'}</h2><span className="cover-photo-details"><Camera size={13}/>{active?`${active.photos.length} photographs · ${active.memories.length} ${active.memories.length===1?'memory':'memories'}`:'A new story starts with a single moment.'}</span></div><button className="cover-open-album" onClick={()=>active?onOpen(active):onAdd()} aria-label={active?`Open featured album: ${active.place}`:'Add your first memory'}><ArrowUpRight size={23}/></button></div>
+    </div></div>
+    {companion&&<button className="cover-postcard" onClick={()=>active&&onOpen(active)} aria-label={`Peek inside ${active?.place}`}><img src={albumImage(companion)} alt=""/><span>One for the memory book.</span></button>}
    </div>
-   {choices.length>1?<div className="cover-destinations" aria-label="Choose a featured place">{choices.map((album,index)=><button key={album.key} className={index===selected?'cover-destination active':'cover-destination'} onClick={()=>setSelected(index)} aria-pressed={index===selected} aria-label={`Feature ${album.place}`}><img src={albumImage(album.photos[0])} alt=""/><span><small>{String(index+1).padStart(2,'0')}</small><strong>{album.place}</strong></span><ArrowUpRight size={13}/></button>)}</div>:<div className="cover-visual-caption"><Camera size={14}/><span>Photographs become stories. Stories become you.</span><Sparkles size={14}/></div>}
+   {active&&<div className="cover-gesture-bar"><span><MoveHorizontal size={15}/> {choices.length>1?'Drag to wander':'A place worth remembering'}</span><div>{onStories&&<button className="cover-watch-stories" onClick={()=>onStories(active.key)}><Play size={12} fill="currentColor"/> Watch stories</button>}{choices.length>1&&<><button aria-label="Previous featured place" onClick={()=>sweep.step(-1)}><ChevronLeft size={17}/></button><button aria-label="Next featured place" onClick={()=>sweep.step(1)}><ChevronRight size={17}/></button></>}</div></div>}
+   {choices.length>1?<div className="cover-destinations" aria-label="Choose a featured place">{choices.map((album,index)=><button key={album.key} className={index===selected?'cover-destination active':'cover-destination'} onClick={()=>{if(index!==selected)sweep.select(()=>setSelected(index),index>selected?1:-1)}} aria-pressed={index===selected} aria-label={`Feature ${album.place}`}><img src={albumImage(album.photos[0])} alt=""/><span><small>{String(index+1).padStart(2,'0')}</small><strong>{album.place}</strong></span><ArrowUpRight size={13}/></button>)}</div>:<div className="cover-visual-caption"><Camera size={14}/><span>Photographs become stories. Stories become you.</span><Sparkles size={14}/></div>}
   </div>
  </section>
  <section className="journal-summary" aria-label={sample?'Sample journal statistics':'Your journal statistics'}><div className="summary-title"><span className="summary-star">✳</span><span>Your story,<br/><em>so far.</em></span></div><div className="summary-stat"><BookOpen size={19} strokeWidth={1.3}/><strong>{String(memories).padStart(2,'0')}</strong><span>memories<br/>worth keeping</span></div><div className="summary-stat"><MapPin size={19} strokeWidth={1.3}/><strong>{String(places).padStart(2,'0')}</strong><span>places<br/>that left a mark</span></div><div className="summary-stat"><Camera size={19} strokeWidth={1.3}/><strong>{String(photos).padStart(2,'0')}</strong><span>photographs<br/>to take you back</span></div><button className="summary-invitation" onClick={onAdd}><span>And so much<br/>more to come.</span><ArrowRight size={20}/></button></section>

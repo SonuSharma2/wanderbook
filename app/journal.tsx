@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { groupPlaceAlbums, type AlbumPhoto } from './albums';
 import { PlaceAlbums, AlbumContents } from './place-albums';
 import TravelCover from './travel-cover';
+import Modal from './modal';
+import { StoriesShelf, StoryViewer, storyStamp } from './travel-stories';
+import { useSweep } from './use-sweep';
 import { ArrowUpRight, ArrowRight, ArrowLeft, Plus, Compass, MapPin, Mountain, Coffee, Camera, Search, Heart, X, CalendarDays, BookOpen, Map as MapIcon, Stamp, SlidersHorizontal, Upload, Trash2, Pencil, ChevronLeft, ChevronRight, Check, Download, Shuffle, LockKeyhole, Menu, Grid2X2, List, LocateFixed, ImagePlus, LoaderCircle, Footprints, MoveUp, MoveDown, Star, Globe2, Sparkles, ChevronDown } from 'lucide-react';
 
 type Category='Trekking'|'Roaming'|'Food & cafés';
@@ -32,17 +35,14 @@ const dateLabel=(d:string,full=false)=>new Date(d+'T12:00:00').toLocaleDateStrin
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kathmandu',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 function fresh():Entry{return {id:crypto.randomUUID(),title:'',location:'',country:'',date:today(),category:'Trekking',mood:'Adventure',story:'',trip:'',rating:0,cost:'',favorite:false,lat:null,lng:null,photos:[]}}
 
-function Modal({children,onClose,className='',label}:{children:ReactNode;onClose:()=>void;className?:string;label:string}){
- const ref=useRef<HTMLDialogElement>(null);
- useEffect(()=>{const d=ref.current;d?.showModal();const old=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{d?.close();document.body.style.overflow=old}},[]);
- return <dialog ref={ref} aria-label={label} className={'modal '+className} onCancel={e=>{e.preventDefault();onClose()}} onClick={e=>{if(e.target===e.currentTarget)onClose()}}><div className="modal-inner">{children}</div></dialog>
-}
-
 export default function Journal({signedIn,name}:{signedIn:boolean;name:string}){
  const [entries,setEntries]=useState<Entry[]>([]),[demo,setDemo]=useState(true),[loading,setLoading]=useState(true),[error,setError]=useState('');
  const [tab,setTab]=useState('Journal'),[category,setCategory]=useState('All moments'),[query,setQuery]=useState(''),[mood,setMood]=useState('All moods'),[sort,setSort]=useState('newest'),[onlyFav,setOnlyFav]=useState(false),[layout,setLayout]=useState('grid'),[filters,setFilters]=useState(false);
  const [selected,setSelected]=useState<Entry|null>(null),[editor,setEditor]=useState<Entry|null>(null),[lightbox,setLightbox]=useState<GalleryValue|null>(null),[toast,setToast]=useState(''),[busy,setBusy]=useState(false),[mobile,setMobile]=useState(false);
  const [albumKey,setAlbumKey]=useState<string|null>(null);
+ const [storyKey,setStoryKey]=useState<string|null>(null),[seenStories,setSeenStories]=useState<Record<string,string>>({});
+ useEffect(()=>{try{const saved=JSON.parse(localStorage.getItem('wanderbook-story-seen')||'{}');if(saved&&typeof saved==='object'&&!Array.isArray(saved))setSeenStories(Object.fromEntries(Object.entries(saved).filter(([,value])=>typeof value==='string')) as Record<string,string>)}catch{}},[]);
+ const markStorySeen=(album:ReturnType<typeof groupPlaceAlbums>[number])=>setSeenStories(previous=>{const updated={...previous,[album.key]:storyStamp(album)};try{localStorage.setItem('wanderbook-story-seen',JSON.stringify(updated))}catch{}return updated});
  const [backup,setBackup]=useState(false);const importRef=useRef<HTMLInputElement>(null);
  const notify=(message:string)=>setToast(message);
  useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),4200);return()=>clearTimeout(t)},[toast]);
@@ -52,8 +52,8 @@ export default function Journal({signedIn,name}:{signedIn:boolean;name:string}){
  const openAlbum=albums.find(album=>album.key===albumKey);
  const filtered=useMemo(()=>source.filter(e=>(category==='All moments'||e.category===category)&&(!onlyFav||e.favorite)&&(mood==='All moods'||e.mood===mood)&&[e.title,e.location,e.country,e.trip,e.story].join(' ').toLowerCase().includes(query.toLowerCase())).sort((a,b)=>sort==='oldest'?a.date.localeCompare(b.date):sort==='title'?a.title.localeCompare(b.title):b.date.localeCompare(a.date)),[source,category,onlyFav,mood,query,sort]);
  const countries=[...new Set(source.map(e=>e.country).filter(Boolean))];const places=[...new Set(source.map(e=>e.location))];const photoCount=source.reduce((sum,e)=>sum+e.photos.length,0);
- const switchDemo=(value:boolean)=>{setDemo(value);localStorage.setItem('wanderbook-view',value?'sample':'mine');setCategory('All moments');setQuery('');setOnlyFav(false);setMood('All moods')};
- const newMemory=()=>{if(!signedIn){window.location.href='/signin-with-chatgpt?return_to=/';return}setAlbumKey(null);setSelected(null);setEditor(fresh())};
+ const switchDemo=(value:boolean)=>{setStoryKey(null);setDemo(value);localStorage.setItem('wanderbook-view',value?'sample':'mine');setCategory('All moments');setQuery('');setOnlyFav(false);setMood('All moods')};
+ const newMemory=()=>{if(!signedIn){window.location.href='/signin-with-chatgpt?return_to=/';return}setStoryKey(null);setAlbumKey(null);setSelected(null);setEditor(fresh())};
  const save=async(e:Entry)=>{const form=new FormData();form.set('entry',JSON.stringify({...e,photos:e.photos.map(p=>({id:p.id,caption:p.caption}))}));for(const p of e.photos)if(p.file)form.set(p.id,p.file);const r=await fetch('/api/entries',{method:'POST',body:form});const result=await r.json() as Entry & {error?:string};if(!r.ok)throw Error(result.error||'Could not save memory.');setEntries(prev=>[result,...prev.filter(x=>x.id!==result.id)]);if(selected?.id===e.id)setSelected(result);switchDemo(false);setEditor(null);notify('Memory tucked away. Here’s to the next one!')};
  const favorite=async(e:Entry)=>{if(e.id.startsWith('sample')){notify('Sample memories are a preview. Add your own to start collecting favorites.');return}try{const form=new FormData();form.set('entry',JSON.stringify({...e,favorite:!e.favorite}));const r=await fetch('/api/entries',{method:'POST',body:form});const result=await r.json() as Entry & {error?:string};if(!r.ok)throw Error(result.error||'Could not update favorite.');setEntries(prev=>prev.map(x=>x.id===e.id?result:x));if(selected?.id===e.id)setSelected(result)}catch(err){notify((err as Error).message)}};
  const remove=async(e:Entry)=>{setBusy(true);try{const r=await fetch(`/api/entries/${e.id}`,{method:'DELETE'});if(!r.ok)throw Error('Could not delete this memory. Please try again.');setEntries(prev=>prev.filter(x=>x.id!==e.id));setSelected(null);notify('Memory deleted.')}catch(err){notify((err as Error).message)}finally{setBusy(false)}};
@@ -66,8 +66,9 @@ export default function Journal({signedIn,name}:{signedIn:boolean;name:string}){
  <nav className={mobile?'nav mobile-open':'nav'} aria-label="Main navigation">{[['Journal',BookOpen],['My map',MapIcon],['Passport',Stamp]].map(([text,Icon])=><button key={String(text)} className={tab===text?'nav-item active':'nav-item'} onClick={()=>navigate(String(text))}>{typeof Icon!=='string'&&<Icon size={16}/>}<span>{String(text)}</span></button>)}</nav>
  <div className="header-actions"><span className="private-label"><span/> Private journal</span><button className="primary small" onClick={newMemory}><Plus size={17}/><span>New memory</span></button><button className="icon-btn mobile-menu" aria-label="Toggle navigation" onClick={()=>setMobile(!mobile)}><Menu size={22}/></button></div></header>
 
- <main><TravelCover albums={albums} sample={demo} memories={source.length} photos={photoCount} places={places.length} onAdd={newMemory} onOpen={album=>setAlbumKey(album.key)} onBrowse={()=>navigate('Journal')}/>
+ <main><TravelCover albums={albums} sample={demo} memories={source.length} photos={photoCount} places={places.length} onAdd={newMemory} onOpen={album=>setAlbumKey(album.key)} onStories={setStoryKey} onBrowse={()=>navigate('Journal')}/>
 
+ {tab==='Journal'&&<StoriesShelf albums={albums} sample={demo} seen={seenStories} onOpen={setStoryKey} onAdd={newMemory}/>}
  {tab==='Journal'&&<PlaceAlbums albums={albums} sample={demo} loading={loading} onOpen={album=>setAlbumKey(album.key)} onAdd={newMemory}/>}
  <section id="collection" className="collection"><div className="collection-top"><div><div className="eyebrow green">THE GOOD STUFF, KEPT FOREVER</div><h2>{tab==='Journal'?<>Notes from <em>out there.</em></>:tab==='My map'?<>A world of <em>little moments.</em></>:<>A passport to <em>your stories.</em></>}</h2><p className="section-intro">{tab==='Journal'?'Big adventures. Small discoveries. All part of your story.':tab==='My map'?'Follow the pins. Find yourself back in a memory.':'Every place leaves a mark. These are yours to keep.'}</p></div><button className="text-button surprise" disabled={!source.length} onClick={()=>setSelected(source[Math.floor(Math.random()*source.length)])}><Shuffle size={15}/> Take me back <ArrowUpRight size={15}/></button></div>
 
@@ -92,6 +93,7 @@ export default function Journal({signedIn,name}:{signedIn:boolean;name:string}){
  {openAlbum&&<Modal onClose={()=>setAlbumKey(null)} label={`${openAlbum.place} photo album`} className="album-dialog"><AlbumContents album={openAlbum} onClose={()=>setAlbumKey(null)} onPhoto={(index,items)=>setLightbox({entry:items[index].entry,index,items,title:openAlbum.place})} onStory={entry=>{setAlbumKey(null);setSelected(entry)}} onAdd={newMemory}/></Modal>}
  {selected&&<MemoryDetail entry={selected} onClose={()=>setSelected(null)} onEdit={()=>{if(selected.id.startsWith('sample')){newMemory();return}setEditor(selected)}} onFavorite={()=>favorite(selected)} onDelete={()=>remove(selected)} busy={busy} onPhoto={i=>setLightbox({entry:selected,index:i})}/>}
  {editor&&<Editor entry={editor} onClose={()=>setEditor(null)} onSave={save}/>}
+ {storyKey&&<StoryViewer key={storyKey} albums={albums} startKey={storyKey} onClose={()=>setStoryKey(null)} onSeen={markStorySeen} onAlbum={album=>{setStoryKey(null);setAlbumKey(album.key)}}/>}
  {lightbox&&<Lightbox value={lightbox} onClose={()=>setLightbox(null)} onChange={i=>setLightbox({...lightbox,index:i})}/>}
  {toast&&<div className="toast" role="status"><Compass size={18}/>{toast}<button aria-label="Dismiss notification" onClick={()=>setToast('')}><X size={15}/></button></div>}
  </>
@@ -104,12 +106,13 @@ function MemoryDetail({entry:e,onClose,onEdit,onFavorite,onDelete,onPhoto,busy}:
 
 export function Lightbox({value,onClose,onChange}:{value:GalleryValue;onClose:()=>void;onChange:(i:number)=>void}){
  const {entry:e,index}=value;const items=value.items||e.photos.map(photo=>({entry:e,photo}));const current=items[index];const move=(d:number)=>onChange((index+d+items.length)%items.length);
- const touch=useRef<{x:number;y:number}|null>(null);
- return <Modal onClose={onClose} label="Photo gallery" className="lightbox"><div onKeyDown={event=>{if(event.key==='ArrowRight'){event.preventDefault();move(1)}if(event.key==='ArrowLeft'){event.preventDefault();move(-1)}}}>
+ const sweep=useSweep({enabled:items.length>1,onStep:move});
+ return <Modal onClose={onClose} label="Photo gallery" className="lightbox"><div onKeyDown={event=>{if(event.key==='ArrowRight'){event.preventDefault();sweep.step(1)}if(event.key==='ArrowLeft'){event.preventDefault();sweep.step(-1)}}}>
   <div className="lightbox-top"><span>{value.title||e.title} <small>{index+1} / {items.length}</small></span><button className="icon-btn" onClick={onClose} aria-label="Close gallery"><X size={24}/></button></div>
-  <div className="lightbox-image" onTouchStart={event=>{const p=event.touches[0];if(p)touch.current={x:p.clientX,y:p.clientY}}} onTouchEnd={event=>{const p=event.changedTouches[0],start=touch.current;touch.current=null;if(!p||!start)return;const dx=p.clientX-start.x,dy=p.clientY-start.y;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.5)move(dx<0?1:-1)}}>
-   {items.length>1&&<button className="gallery-arrow left" onClick={()=>move(-1)} aria-label="Previous photo"><ChevronLeft/></button>}<img key={`${current.entry.id}-${current.photo.id}`} src={image(current.entry,current.photo)} alt={current.photo.caption||current.entry.title}/>{items.length>1&&<button className="gallery-arrow right" onClick={()=>move(1)} aria-label="Next photo"><ChevronRight/></button>}
-  </div><p>{current.photo.caption||current.entry.location}</p></div></Modal>
+  <div className={'lightbox-image sweep-'+sweep.phase} {...sweep.props}>
+   <div className="gallery-sweep-card sweep-card" style={sweep.style}><img key={`${current.entry.id}-${current.photo.id}`} draggable={false} src={image(current.entry,current.photo)} alt={current.photo.caption||current.entry.title}/></div>
+   {items.length>1&&<><button className="gallery-arrow left" onClick={()=>sweep.step(-1)} aria-label="Previous photo"><ChevronLeft/></button><button className="gallery-arrow right" onClick={()=>sweep.step(1)} aria-label="Next photo"><ChevronRight/></button></>}
+  </div><p>{current.photo.caption||current.entry.location}{items.length>1&&<small className="gallery-drag-hint">Drag or swipe to turn the page</small>}</p></div></Modal>
 }
 
 function WorldMap({entries,onSelect,picker,onPick}:{entries:Entry[];onSelect?:(e:Entry)=>void;picker?:boolean;onPick?:(lat:number,lng:number)=>void}){
