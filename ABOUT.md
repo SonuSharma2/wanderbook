@@ -2,7 +2,7 @@
 
 A private travel journal for photos, trekking, wandering, and food discoveries.
 
-The homepage is an animated photo desk: a cinematic landscape backdrop, staggered typography, floating layered photographs, pointer parallax, a rotating compass seal, a drawn route, and a moving travel ticker. Drag the main photograph to sweep to another place, select a destination in the thumbnail dock, open its album, or play its Stories. The scene has a pause control and follows reduced-motion and background-tab preferences. Lower sections add animated Story rings, opt-in interaction effects and scroll reveals. An empty personal journal shows a first-memory prompt without sample photographs.
+The homepage leads with a short headline, one primary Add a memory action, and an animated photo desk. Cinematic backgrounds, floating layered photographs, pointer parallax, a rotating compass and a drawn route provide motion without decorative slogans, statistics or a text ticker. Drag the main photograph to sweep between place albums, or choose a destination thumbnail. Stories and albums use compact headings and place names. Notes show titles and location/date details; the full writing opens inside an entry. Motion has pause controls and follows reduced-motion and background-tab preferences.
 
 ## What works
 

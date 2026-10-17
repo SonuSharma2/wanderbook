@@ -57,8 +57,8 @@ export function PlaceAlbums({ albums, sample, loading, onOpen, onAdd }: {
 
   const animate = playing && !interacting && !reducedMotion && !hidden;
   return <section id="place-albums" className={'place-albums ' + (animate ? 'albums-moving' : 'albums-still')} aria-label="Photo albums by place">
-    <div className="albums-heading"><div><h2>Place albums</h2><p>{sample ? 'Six places to explore in the sample journal.' : 'Every visit to the same place, collected in one album.'}</p></div><div className="album-controls">
-      <button className="album-motion" type="button" onClick={() => setPlaying(!playing)} aria-label={playing ? 'Pause album animations' : 'Play album animations'} aria-pressed={playing}>{playing ? <Pause size={14}/> : <Play size={14}/>}<span>{playing ? 'Pause slideshow' : 'Play slideshow'}</span></button>
+    <div className="albums-heading"><div><h2>Albums</h2></div><div className="album-controls">
+      <button className="album-motion" type="button" onClick={() => setPlaying(!playing)} aria-label={playing ? 'Pause album animations' : 'Play album animations'} aria-pressed={playing}>{playing ? <Pause size={14}/> : <Play size={14}/>}</button>
       {overflow && <><button type="button" className="album-arrow" onClick={() => go(-1)} aria-label="Previous place albums"><ChevronLeft size={18}/></button><button type="button" className="album-arrow" onClick={() => go(1)} aria-label="Next place albums"><ChevronRight size={18}/></button></>}
     </div></div>
     {albums.length ? <>
@@ -67,10 +67,10 @@ export function PlaceAlbums({ albums, sample, loading, onOpen, onAdd }: {
           <div className="album-front"><div className="album-cover">
             {album.photos.length ? album.photos.slice(0, 3).map((photo, i) => <img key={`${photo.entry.id}-${photo.photo.id}`} className={i === coverTick % Math.min(3, album.photos.length) ? 'album-cover-photo visible' : 'album-cover-photo'} src={albumImage(photo)} alt="" loading="lazy"/>) : <div className="album-no-cover"><Compass size={55} strokeWidth={.8}/><span>A little room for wonder</span></div>}
             <span className="album-open"><ArrowUpRight size={19}/></span>
-          </div><div className="album-place-name"><span>{album.country || 'Saved place'}</span><h3>{album.place}</h3></div><div className="album-caption"><span>{album.photos.length} {album.photos.length === 1 ? 'photo' : 'photos'}<span>·</span>{album.memories.length} {album.memories.length === 1 ? 'visit' : 'visits'}</span><time dateTime={album.latest}>{new Date(album.latest+'T12:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'})}</time></div></div>
+          </div><div className="album-place-name"><h3>{album.place}</h3></div><div className="album-caption"><span>{album.photos.length} {album.photos.length === 1 ? 'photo' : 'photos'}</span><time dateTime={album.latest}>{new Date(album.latest+'T12:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'})}</time></div></div>
         </button>)}
       </div>
-      <div className="album-shelf-footer"><span>{albums.length} {albums.length === 1 ? 'album' : 'albums'} <span>·</span> Most recently visited first</span>{overflow&&<div className="album-position" aria-hidden="true">{albums.map((a, i) => <span key={a.key} className={i === active ? 'active' : ''}/>)}</div>}</div>
+      <div className="album-shelf-footer">{overflow&&<div className="album-position" aria-hidden="true">{albums.map((a, i) => <span key={a.key} className={i === active ? 'active' : ''}/>)}</div>}</div>
     </> : <div className="albums-empty"><ImagePlus size={30} strokeWidth={1}/><div><h3>{loading ? 'Opening your albums…' : 'The first place is yours to choose.'}</h3><p>{loading ? 'Your photographs will be here in a moment.' : 'Add photos to a memory and we’ll gather them into a place album.'}</p></div>{!loading && <button className="primary" onClick={onAdd}><Plus size={15}/> Start an album</button>}</div>}
   </section>;
 }
