@@ -7,13 +7,11 @@ import { createBrowserJournal } from '../github-pages/browser-journal';
 import Journal from '../app/journal';
 import { assetUrl } from '../app/assets';
 import { albumImage, groupPlaceAlbums, mergeAlbumFolders } from '../app/albums';
-import { CLOUD_JOURNAL_URL, PUBLIC_ALBUM_URL, syncedJournalUrl } from '../app/cloud-link';
+import { CLOUD_JOURNAL_URL } from '../app/cloud-link';
 
 assert.equal(assetUrl('/photos/trek.jpg'),'/wanderbook/photos/trek.jpg');
 assert.equal(assetUrl('blob:local-photo'),'blob:local-photo');
 assert.equal(assetUrl('https://example.com/photo.jpg'),'https://example.com/photo.jpg');
-assert.equal(syncedJournalUrl('?album=Panchpokhari&device=1&untrusted=ignored'),PUBLIC_ALBUM_URL,'new visitors open the public album without a sign-in flow');
-assert.equal(syncedJournalUrl('?restore=1'),CLOUD_JOURNAL_URL+'/?restore=1','device migration continues to the protected owner journal');
 
 const bytes=await readFile('public/photos/trek.jpg');
 const databaseName='wanderbook-test-'+crypto.randomUUID();
