@@ -2,6 +2,8 @@
 
 A private travel journal for photos, trekking, wandering, and food discoveries.
 
+The homepage uses an editorial split cover with warm paper tones, forest-green typography, a framed destination photograph, a small postcard preview, and live journal statistics. Destination thumbnails switch the featured place; its photo button opens the matching album. The cover stacks on narrow screens and respects reduced-motion preferences.
+
 ## What works
 
 - Create, edit, and delete memories with dates, places, countries, trip names, moods, experience ratings, and spending notes.
