@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, ArrowUpRight, Camera, ChevronLeft, ChevronRight, Compass, ImagePlus, MapPin, Pause, Play, Plus, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Camera, ChevronLeft, ChevronRight, Compass, ImagePlus, MapPin, Pause, Play, Plus, Share2, X } from 'lucide-react';
 import { albumImage, type AlbumPhoto, type PlaceAlbum } from './albums';
 import type { Entry } from './journal';
 
@@ -76,11 +76,11 @@ export function PlaceAlbums({ albums, sample, loading, onOpen, onAdd, onCreate }
   </section>;
 }
 
-export function AlbumContents({album,onClose,onPhoto,onStory,onAdd}:{album:PlaceAlbum;onClose:()=>void;onPhoto:(index:number,items:AlbumPhoto[])=>void;onStory:(entry:Entry)=>void;onAdd:()=>void}){
+export function AlbumContents({album,onClose,onPhoto,onStory,onAdd,onShare}:{album:PlaceAlbum;onClose:()=>void;onPhoto:(index:number,items:AlbumPhoto[])=>void;onStory:(entry:Entry)=>void;onAdd:()=>void;onShare?:()=>void}){
   const [sort,setSort]=useState('newest');
   const photos=album.photos.map((photo,index)=>({...photo,index}));
   if(sort==='oldest')photos.sort((a,b)=>a.entry.date.localeCompare(b.entry.date)||a.index-b.index);
-  return <><div className="album-dialog-heading"><div><div className="eyebrow green"><MapPin size={12}/>{album.country || 'YOUR PERSONAL TRAVEL ALBUM'}</div><h2>{album.place}</h2><p>{album.photos.length} {album.photos.length===1?'photo':'photos'}</p></div><div className="album-dialog-actions">{!!album.photos.length&&<button className="primary small" type="button" onClick={onAdd}><ImagePlus size={16}/> Upload photos</button>}<button className="icon-btn" type="button" onClick={onClose} aria-label="Close place album"><X size={23}/></button></div></div>
+  return <><div className="album-dialog-heading"><div><div className="eyebrow green"><MapPin size={12}/>{album.country || 'YOUR PERSONAL TRAVEL ALBUM'}</div><h2>{album.place}</h2><p>{album.photos.length} {album.photos.length===1?'photo':'photos'}</p></div><div className="album-dialog-actions">{onShare&&<button className="secondary" type="button" onClick={onShare}><Share2 size={15}/> Share album</button>}{!!album.photos.length&&<button className="primary small" type="button" onClick={onAdd}><ImagePlus size={16}/> Upload photos</button>}<button className="icon-btn" type="button" onClick={onClose} aria-label="Close place album"><X size={23}/></button></div></div>
   {album.memories.length>1&&<><div className="album-visits-label">Visits to {album.place}</div><div className="album-visits">{album.memories.map(entry=><button className="album-visit" key={entry.id} onClick={()=>onStory(entry)}><span><small>{new Date(entry.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})} · {entry.photos.length} photos</small><strong>{entry.title}</strong></span><ArrowUpRight size={15}/></button>)}</div></>}
   {album.photos.length ? <><div className="album-gallery-toolbar"><span><Camera size={15}/> The moments, all together.</span><label>Photo order <select value={sort} onChange={event=>setSort(event.target.value)}><option value="newest">Newest visit first</option><option value="oldest">Oldest visit first</option></select></label></div><div className="album-photo-grid">{photos.map(({entry,photo,index},position)=><figure key={`${entry.id}-${photo.id}`}><button className="album-photo-button" onClick={()=>onPhoto(position,photos)} aria-label={`Open photo ${position+1}: ${photo.caption || entry.title}`}><img src={albumImage({entry,photo})} alt={photo.caption || entry.title} loading="lazy"/><span><ArrowUpRight size={19}/></span></button><figcaption>{photo.caption&&<p>{photo.caption}</p>}<button onClick={()=>onStory(entry)}>{entry.title} <ArrowUpRight size={12}/></button><time dateTime={entry.date}>{new Date(entry.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</time></figcaption></figure>)}</div></> : <div className="empty-state album-upload-empty"><ImagePlus size={43} strokeWidth={1}/><h3>Your album is ready.</h3><p>Add your first photos from {album.place}.</p><button className="primary" onClick={onAdd}><Plus size={15}/> Upload photos</button></div>}
   <div className="album-dialog-footer"><span>Photos and notes from {album.place}.</span><button className="text-button" onClick={onClose}>Back to my places <ArrowRight size={15}/></button></div></>;

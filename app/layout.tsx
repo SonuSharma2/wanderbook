@@ -3,6 +3,7 @@ import "./globals.css";
 import "./gestures-stories.css";
 import "./travel-cover.css";
 import "./motion-home.css";
+import "./public-album.css";
 
 export const metadata: Metadata = {
   title: "Wanderbook — your travel journal",

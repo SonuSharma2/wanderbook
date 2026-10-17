@@ -1,17 +1,17 @@
 import { env } from 'cloudflare:workers';
 import { z } from 'zod';
-import { getChatGPTUser } from '../../chatgpt-auth';
+import { getJournalUser } from '../../journal-auth';
 import { albumKeyFor } from '../../albums';
 
 const folder=z.object({place:z.string().trim().min(1).max(150),country:z.string().trim().max(80)});
 export async function GET(){
- const user=await getChatGPTUser();
+ const user=await getJournalUser();
  if(!user)return Response.json({error:'Sign in to open your albums.'},{status:401});
  const rows=await env.DB!.prepare('SELECT place,country FROM album_folders WHERE owner = ? ORDER BY created,key').bind(user.userId).all<{place:string;country:string}>();
  return Response.json(rows.results,{headers:{'Cache-Control':'private, no-store'}});
 }
 export async function POST(request:Request){
- const user=await getChatGPTUser();
+ const user=await getJournalUser();
  if(!user)return Response.json({error:'Sign in to save an album.'},{status:401});
  if(request.headers.get('origin')&&request.headers.get('origin')!==new URL(request.url).origin)return new Response('Forbidden',{status:403});
  if(Number(request.headers.get('content-length')||0)>4096)return Response.json({error:'Album details are too long.'},{status:413});

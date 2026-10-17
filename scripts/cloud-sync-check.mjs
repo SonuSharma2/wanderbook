@@ -40,6 +40,6 @@ try{
 }finally{
  if(created)await cloudJournal.remove(id);
  globalThis.fetch=nativeFetch;
- const result=spawnSync(process.execPath,['--import','./scripts/sites-env.mjs','./node_modules/wrangler/bin/wrangler.js','d1','execute','DB','--local','--config','dist/server/wrangler.json','--persist-to','.wrangler/state','--command',`DELETE FROM album_folders WHERE owner = 'local_seedy' AND lower(place) = '${place.toLowerCase()}'`],{encoding:'utf8'});
+ const result=spawnSync(process.execPath,['--import','./scripts/sites-env.mjs','./node_modules/wrangler/bin/wrangler.js','d1','execute','DB','--local','--config','dist/server/wrangler.json','--persist-to','.wrangler/state','--command',`DELETE FROM album_folders WHERE owner = 'journal-owner' AND lower(place) = '${place.toLowerCase()}'`],{encoding:'utf8'});
  assert.equal(result.status,0,result.stderr);
 }
