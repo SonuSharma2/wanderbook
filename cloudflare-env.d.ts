@@ -3,6 +3,5 @@ declare namespace Cloudflare {
     DB?: D1Database;
     BUCKET?: R2Bucket;
     JOURNAL_OWNER_EMAIL?: string;
-    JOURNAL_ADMIN_KEY?: string;
   }
 }
