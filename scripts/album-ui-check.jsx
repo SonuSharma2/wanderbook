@@ -46,7 +46,7 @@ assert.equal(albums.length,6);assert.equal(albums.reduce((n,a)=>n+a.photos.lengt
 let opened;
 await render(<PlaceAlbums albums={albums} sample loading={false} onOpen={a=>opened=a} onAdd={()=>{}}/>);
 assert.equal(container.querySelectorAll('.place-album').length,6);
-assert.ok(container.querySelector('.albums-moving'),'autoplay begins');
+assert.ok(container.querySelector('.albums-moving'),'the animated album slideshow starts');
 const firstCover=container.querySelector('.album-cover-photo.visible').getAttribute('src');
 await tick();
 assert.notEqual(container.querySelector('.album-cover-photo.visible').getAttribute('src'),firstCover,'cover photographs cycle');
@@ -75,6 +75,8 @@ await click(rail.querySelector('button'));assert.equal(opened.key,albums[0].key,
 const revisit=albums.find(a=>a.memories.length===2);let photoOpen,storyOpen;
 await render(<AlbumContents album={revisit} onClose={()=>{}} onPhoto={(index,items)=>photoOpen={index,items}} onStory={entry=>storyOpen=entry} onAdd={()=>{}}/>);
 assert.equal(container.querySelectorAll('.album-photo-button').length,6,'all photographs from repeat visits are displayed');
+assert.equal(container.querySelectorAll('.album-visit').length,2,'repeat visits have separate dated notes');
+await click(container.querySelector('.album-visit'));assert.equal(storyOpen.id,'sample-1','the visit summary opens the corresponding journal entry');
 const select=container.querySelector('select');
 await act(async()=>{select.value='oldest';select.dispatchEvent(new window.Event('change',{bubbles:true}))});
 await click(container.querySelector('.album-photo-button'));
@@ -107,21 +109,29 @@ await render(<div/>);assert.equal(document.body.style.overflow,'','closing resto
 
 await render(<TravelCover albums={albums} sample memories={7} photos={19} places={6} onAdd={()=>{}} onOpen={()=>{}} onBrowse={()=>{}}/>);
 const cover=container.querySelector('.cover-swipe-stage'),coverTitle=()=>container.querySelector('.cover-place h2').textContent;
-assert.equal(coverTitle(),'Annapurna Base Camp');
+assert.equal(coverTitle(),'Nagarkot','the latest place is featured first');
+assert.ok(container.querySelector('.motion-running'),'the cinematic cover starts with atmospheric motion');
+await click(button('Pause cover animations'));assert.ok(container.querySelector('.motion-paused'),'page motion can be paused');
+await click(button('Play cover animations'));assert.ok(container.querySelector('.motion-running'),'page motion resumes');
 await pointer(cover,'pointerdown',500);await pointer(cover,'pointermove',290);
 assert.equal(container.querySelector('.cover-swipe-card').style.getPropertyValue('--sweep-x'),'-210px','photo follows the mouse while held');
 assert.ok(cover.classList.contains('sweep-dragging'));
 await pointer(cover,'pointerup',290);assert.ok(cover.classList.contains('sweep-leaving'),'release begins sweep-away animation');
-await finishSweep();assert.equal(coverTitle(),'Nagarkot','left pull changes the featured album');
-await drag(cover,100,310);assert.equal(coverTitle(),'Annapurna Base Camp','right pull returns');
+await finishSweep();assert.equal(coverTitle(),'Phewa Lake','left pull changes the featured album');
+await drag(cover,100,310);assert.equal(coverTitle(),'Nagarkot','right pull returns');
 await pointer(cover,'pointerdown',200);await pointer(cover,'pointermove',210);await pointer(cover,'pointerup',210);await finishSweep();
-assert.equal(coverTitle(),'Annapurna Base Camp','tiny pull settles back');
+assert.equal(coverTitle(),'Nagarkot','tiny pull settles back');
 await pointer(cover,'pointerdown',400);await pointer(cover,'pointermove',150);await pointer(cover,'pointercancel',150);await finishSweep();
-assert.equal(coverTitle(),'Annapurna Base Camp','cancelled pull keeps the album');
-await sweepClick(button('Previous featured place'));assert.equal(coverTitle(),'Shivapuri','previous wraps to last destination');
+assert.equal(coverTitle(),'Nagarkot','cancelled pull keeps the album');
+await sweepClick(button('Previous featured place'));assert.equal(coverTitle(),'Annapurna Base Camp','previous wraps to last destination');
 await act(async()=>{media.matches=true;media.dispatchEvent(new window.Event('change'))});
-await click(button('Next featured place'));assert.equal(coverTitle(),'Annapurna Base Camp','reduced-motion navigation is immediate');
+await click(button('Next featured place'));assert.equal(coverTitle(),'Nagarkot','reduced-motion navigation is immediate');assert.ok(container.querySelector('.motion-paused'),'reduced motion pauses the scene');
 await render(<div/>);media.matches=false;
+
+let firstMemory=false;
+await render(<TravelCover albums={[]} sample={false} memories={0} photos={0} places={0} onAdd={()=>firstMemory=true} onOpen={()=>{}} onBrowse={()=>{}}/>);
+assert.equal(container.querySelectorAll('.cover-destination-photo').length,0,'an empty personal journal shows no sample photographs');
+await click(container.querySelector('.home-first-memory button'));assert.ok(firstMemory,'empty journal can create its first memory');
 
 let storyKey,added=false;
 await render(<StoriesShelf albums={albums} sample seen={{}} onOpen={key=>storyKey=key} onAdd={()=>added=true}/>);

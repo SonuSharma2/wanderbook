@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import "./travel-cover.css";
 import "./gestures-stories.css";
+import "./travel-cover.css";
+import "./motion-home.css";
 
 export const metadata: Metadata = {
-  title: "Wanderbook — a little further, a little fuller",
+  title: "Wanderbook — your travel journal",
   description: "Your personal travel journal. Collect trails, tables, places, and the moments in between.",
   icons: {
     icon: "/favicon.svg",
