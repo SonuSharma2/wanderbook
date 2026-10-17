@@ -9,6 +9,7 @@ A private travel journal for photos, trekking, wandering, and food discoveries.
 - Search the full journal, filter by category or mood, keep favorites, sort memories, and switch between grid and timeline views.
 - Pin locations on a world map, enter precise coordinates, use your current location with browser permission, and open locations in OpenStreetMap.
 - Browse place stamps in a personal passport and revisit a random memory.
+- Animated place albums on the homepage group photos from all visits to the same location and country. Open an album to browse its photographs, change visit order, open a full-screen gallery, and jump to the original story. The album shelf supports swiping, previous/next controls, pause/play, and reduced-motion preferences.
 - Download a complete JSON backup including photo bytes, then restore it as new memories.
 - Responsive layouts, keyboard-accessible dialogs, photo gallery controls, reduced-motion support, and sample content clearly separated from the personal journal.
 

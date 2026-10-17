@@ -27,11 +27,11 @@ try {
   assert.equal(photo.headers.get('content-type'),'image/jpeg');
   assert.deepEqual(Buffer.from(await photo.arrayBuffer()),bytes,'photo survives upload without data loss');
   assert.equal((await fetch(origin+`/api/photos/${id}/${photoId}`)).status,401,'anonymous photo reads rejected');
-  const changed={...entry,favorite:true,title:'Updated local test',photos:[{id:photoId,caption:'Updated caption'}]};
+  const changed={...entry,category:'Food & cafés',favorite:true,title:'Updated local test',photos:[{id:photoId,caption:'Updated caption'}]};
   const updateForm=new FormData();updateForm.set('entry',JSON.stringify(changed));
   const updated=await authed('/api/entries',{method:'POST',body:updateForm});
   assert.equal(updated.status,200,await updated.clone().text());
-  const stored=await updated.json();assert.equal(stored.favorite,true);assert.equal(stored.photos[0].caption,'Updated caption');
+  const stored=await updated.json();assert.equal(stored.favorite,true);assert.equal(stored.photos[0].caption,'Updated caption');assert.equal(stored.category,'Food & cafés','café category round-trips correctly');
   const csrfForm=new FormData();csrfForm.set('entry',JSON.stringify(entry));
   assert.equal((await authed('/api/entries',{method:'POST',body:csrfForm,headers:{origin:'https://other.example'}})).status,403,'cross-origin writes rejected');
   const bad=new FormData();bad.set('entry',JSON.stringify({...entry,title:''}));
