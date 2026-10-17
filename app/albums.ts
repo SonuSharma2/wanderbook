@@ -1,4 +1,5 @@
 import type { Entry, Photo } from './journal';
+import { assetUrl } from './assets';
 
 export type AlbumPhoto = { entry: Entry; photo: Photo };
 export type PlaceAlbum = {
@@ -27,4 +28,4 @@ export function groupPlaceAlbums(entries: Entry[]): PlaceAlbum[] {
   return [...places.values()];
 }
 
-export const albumImage = ({ entry, photo }: AlbumPhoto) => photo.url || `/api/photos/${entry.id}/${photo.id}`;
+export const albumImage = ({ entry, photo }: AlbumPhoto) => photo.url?assetUrl(photo.url):`/api/photos/${entry.id}/${photo.id}`;

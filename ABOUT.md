@@ -35,3 +35,12 @@ Checks used: `node node_modules/typescript/bin/tsc --noEmit`, the Sites producti
 ## Assets
 
 Editorial sample photos are from Unsplash. They illustrate the design and are not the owner's real journal. World land outlines are from the public-domain Natural Earth dataset. Fonts are DM Sans and DM Serif Display from Google Fonts, with system fallbacks. Using current-location lookup is optional; coordinates can always be entered manually. The published journal is private; it does not issue public trip links.
+
+
+## GitHub Pages version
+
+GitHub Pages serves the React app through the separate `github-pages/` entrypoint, built with `npm run build:pages`. Its base path is `/wanderbook/`. The cloud Worker, authentication code, database files and user uploads are not included in this static build.
+
+The Pages version saves entries and photo blobs in IndexedDB on the visitor's current browser. It has no cloud login or automatic cross-device synchronization. Clearing browser/site data removes that local journal. The page displays a device-storage notice; use Back up journal and Restore backup to keep a portable copy. Incognito storage lasts only for that incognito session. Existing cloud records are separate and can be transferred using a downloaded journal backup.
+
+The `Deploy Wanderbook to GitHub Pages` workflow tests, builds and deploys Pages whenever `main` changes. To preview locally, use `npm run dev:pages` and open `http://127.0.0.1:5174/wanderbook/`. `npm run test:pages` checks JPEG persistence, reopening, edits, photo order and deletion, backup-style restoration, correct subdirectory asset paths and the real Journal UI with no backend requests. Its IndexedDB implementation is emulated for testing.
