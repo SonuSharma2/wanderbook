@@ -41,6 +41,7 @@ const button=label=>container.querySelector(`button[aria-label="${label}"]`);
 await click(container.querySelector('.place-album'));
 assert.equal(container.querySelectorAll('.album-photo-button').length,6,'selecting Panchpokhari opens all six photos');
 assert.doesNotMatch(container.querySelector('.album-dialog').textContent,/Upload photos|Invalid Date|Photo order/,'public albums do not show owner actions or invented dates');
+assert.equal(container.querySelectorAll('.album-remove-photo').length,0,'public visitors cannot remove album photos');
 await click(container.querySelector('.album-photo-button'));
 assert.ok(container.querySelector('dialog[aria-label="Photo gallery"]'),'photo fullscreen gallery opens');
 await click(button('Close gallery'));await click(button('Close place album'));
