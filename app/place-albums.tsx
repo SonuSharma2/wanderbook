@@ -77,16 +77,57 @@ export function PlaceAlbums({ albums, sample, loading, onOpen, onAdd, onCreate, 
   </section>;
 }
 
-export function AlbumContents({album,onClose,onPhoto,onStory,onAdd,onShare,onRemove,readOnly=false}:{album:PlaceAlbum;onClose:()=>void;onPhoto:(index:number,items:AlbumPhoto[])=>void;onStory:(entry:Entry)=>void;onAdd:()=>void;onShare?:()=>void;onRemove?:(photo:AlbumPhoto)=>Promise<void>;readOnly?:boolean}){
+export function AlbumContents({album,onClose,onPhoto,onStory,onAdd,onShare,onRemove,readOnly=false}:{album:PlaceAlbum;onClose:()=>void;onPhoto:(index:number,items:AlbumPhoto[])=>void;onStory:(entry:Entry)=>void;onAdd:()=>void;onShare?:()=>void;onRemove?:(photos:AlbumPhoto[])=>Promise<void>;readOnly?:boolean}){
   const [sort,setSort]=useState('newest');
-  const [removing,setRemoving]=useState<AlbumPhoto|null>(null),[busy,setBusy]=useState(false),[removeError,setRemoveError]=useState('');
-  const confirmRemove=async()=>{if(!removing||!onRemove||busy)return;setBusy(true);setRemoveError('');try{await onRemove(removing);setRemoving(null)}catch(error){setRemoveError((error as Error).message||'The photo could not be removed. Please try again.')}finally{setBusy(false)}};
+  const [selecting,setSelecting]=useState(false),[selected,setSelected]=useState<Set<string>>(new Set());
+  const [confirming,setConfirming]=useState(false),[busy,setBusy]=useState(false),[removeError,setRemoveError]=useState('');
+  const photoKey=({entry,photo}:AlbumPhoto)=>`${entry.id}/${photo.id}`;
+  const selectedPhotos=album.photos.filter(item=>selected.has(photoKey(item)));
+  const canSelect=!readOnly&&!!onRemove;
+  useEffect(()=>{setSelected(new Set());setSelecting(false);setConfirming(false);setRemoveError('')},[album.key]);
+  const toggle=(item:AlbumPhoto)=>setSelected(previous=>{const next=new Set(previous),key=photoKey(item);if(next.has(key))next.delete(key);else next.add(key);return next});
+  const cancelSelection=()=>{setSelecting(false);setSelected(new Set());setRemoveError('')};
+  const confirmRemove=async()=>{
+    if(!selectedPhotos.length||!onRemove||busy)return;
+    setBusy(true);setRemoveError('');
+    try{await onRemove(selectedPhotos);setConfirming(false);cancelSelection()}
+    catch(error){setRemoveError((error as Error).message||'The selected photos could not be removed. Please try again.')}
+    finally{setBusy(false)}
+  };
   const photos=album.photos.map((photo,index)=>({...photo,index}));
   if(sort==='oldest')photos.sort((a,b)=>a.entry.date.localeCompare(b.entry.date)||a.index-b.index);
-  return <><div className="album-dialog-heading"><div><div className="eyebrow green"><MapPin size={12}/>{album.country || 'YOUR PERSONAL TRAVEL ALBUM'}</div><h2>{album.place}</h2><p>{album.photos.length} {album.photos.length===1?'photo':'photos'}</p></div><div className="album-dialog-actions">{onShare&&<button className="secondary" type="button" onClick={onShare}><Share2 size={15}/> Share album</button>}{!readOnly&&!!album.photos.length&&<button className="primary small" type="button" onClick={onAdd}><ImagePlus size={16}/> Upload photos</button>}<button className="icon-btn" type="button" onClick={onClose} aria-label="Close place album"><X size={23}/></button></div></div>
-  {!readOnly&&album.memories.length>1&&<><div className="album-visits-label">Visits to {album.place}</div><div className="album-visits">{album.memories.map(entry=><button className="album-visit" key={entry.id} onClick={()=>onStory(entry)}><span><small>{new Date(entry.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})} · {entry.photos.length} photos</small><strong>{entry.title}</strong></span><ArrowUpRight size={15}/></button>)}</div></>}
-  {album.photos.length ? <><div className="album-gallery-toolbar"><span><Camera size={15}/> The moments, all together.</span>{!readOnly&&<label>Photo order <select value={sort} onChange={event=>setSort(event.target.value)}><option value="newest">Newest visit first</option><option value="oldest">Oldest visit first</option></select></label>}</div><div className="album-photo-grid">{photos.map(({entry,photo,index},position)=><figure key={`${entry.id}-${photo.id}`}><div className="album-photo-frame"><button className="album-photo-button" onClick={()=>onPhoto(position,photos)} aria-label={`Open photo ${position+1}: ${photo.caption || entry.title}`}><img src={albumImage({entry,photo})} alt={photo.caption || entry.title} loading="lazy"/><span><ArrowUpRight size={19}/></span></button>{!readOnly&&onRemove&&<button className="album-remove-photo" type="button" aria-label={`Remove photo ${position+1}`} onClick={()=>{setRemoveError('');setRemoving({entry,photo})}}><Trash2 size={15}/><span>Remove</span></button>}</div><figcaption>{photo.caption&&<p>{photo.caption}</p>}{!readOnly&&<button onClick={()=>onStory(entry)}>{entry.title} <ArrowUpRight size={12}/></button>}{!readOnly&&<time dateTime={entry.date}>{new Date(entry.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</time>}</figcaption></figure>)}</div></> : <div className="empty-state album-upload-empty"><ImagePlus size={43} strokeWidth={1}/><h3>Your album is ready.</h3><p>Add your first photos from {album.place}.</p>{!readOnly&&<button className="primary" onClick={onAdd}><Plus size={15}/> Upload photos</button>}</div>}
-  <div className="album-dialog-footer"><span>{readOnly?'Photos':'Photos and notes'} from {album.place}.</span><button className="text-button" onClick={onClose}>Back to my places <ArrowRight size={15}/></button></div>
-  {removing&&!readOnly&&onRemove&&<Modal label="Remove photo" className="remove-photo-modal" onClose={()=>{if(!busy)setRemoving(null)}}><div className="remove-photo-content"><img src={albumImage(removing)} alt={removing.photo.caption||removing.entry.title}/><h2>Remove this photo?</h2><p>This permanently deletes the photo from your journal and shared album. Your other photos and notes stay.</p>{removeError&&<p className="error-box" role="alert">{removeError}</p>}<div className="remove-photo-actions"><button className="secondary" type="button" autoFocus disabled={busy} onClick={()=>setRemoving(null)}>Keep photo</button><button className="danger" type="button" disabled={busy} onClick={()=>void confirmRemove()}><Trash2 size={15}/>{busy?'Removing...':'Remove photo'}</button></div></div></Modal>}
+  return <>
+    <div className="album-dialog-heading"><div><div className="eyebrow green"><MapPin size={12}/>{album.country || 'YOUR PERSONAL TRAVEL ALBUM'}</div><h2>{album.place}</h2><p>{album.photos.length} {album.photos.length===1?'photo':'photos'}</p></div><div className="album-dialog-actions">{onShare&&<button className="secondary" type="button" onClick={onShare}><Share2 size={15}/> Share album</button>}{!readOnly&&!!album.photos.length&&<button className="primary small" type="button" onClick={onAdd}><ImagePlus size={16}/> Upload photos</button>}<button className="icon-btn" type="button" onClick={onClose} aria-label="Close place album"><X size={23}/></button></div></div>
+    {!readOnly&&album.memories.length>1&&<><div className="album-visits-label">Visits to {album.place}</div><div className="album-visits">{album.memories.map(entry=><button className="album-visit" key={entry.id} onClick={()=>onStory(entry)}><span><small>{new Date(entry.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})} / {entry.photos.length} photos</small><strong>{entry.title}</strong></span><ArrowUpRight size={15}/></button>)}</div></>}
+    {album.photos.length ? <>
+      <div className={'album-gallery-toolbar '+(selecting?'album-selection-toolbar':'')}>
+        {selecting&&canSelect?<>
+          <span role="status" aria-live="polite">{selectedPhotos.length} selected</span>
+          <div className="album-selection-actions">
+            <button className="secondary" type="button" onClick={()=>setSelected(selectedPhotos.length===album.photos.length?new Set():new Set(album.photos.map(photoKey)))}>{selectedPhotos.length===album.photos.length?'Clear selection':'Select all'}</button>
+            <button className="secondary" type="button" aria-label="Cancel photo selection" onClick={cancelSelection}>Cancel</button>
+            <button className="danger" type="button" disabled={!selectedPhotos.length} onClick={()=>{setRemoveError('');setConfirming(true)}}><Trash2 size={15}/>Remove selected ({selectedPhotos.length})</button>
+          </div>
+        </>:<>
+          <span><Camera size={15}/> The moments, all together.</span>
+          <div className="album-browse-tools">{!readOnly&&<label>Photo order <select value={sort} onChange={event=>setSort(event.target.value)}><option value="newest">Newest visit first</option><option value="oldest">Oldest visit first</option></select></label>}{canSelect&&<button className="secondary" type="button" onClick={()=>setSelecting(true)}>Select photos</button>}</div>
+        </>}
+      </div>
+      <div className="album-photo-grid">{photos.map(({entry,photo},position)=>{
+        const item={entry,photo},checked=selected.has(photoKey(item));
+        return <figure key={photoKey(item)} className={selecting&&checked?'album-photo-selected':''}>
+          <div className="album-photo-frame"><button className="album-photo-button" type="button" onClick={()=>selecting&&canSelect?toggle(item):onPhoto(position,photos)} aria-pressed={selecting&&canSelect?checked:undefined} aria-label={`${selecting&&canSelect?'Select':'Open'} photo ${position+1}: ${photo.caption || entry.title}`}><img src={albumImage(item)} alt={photo.caption || entry.title} loading="lazy"/>{!selecting&&<span><ArrowUpRight size={19}/></span>}</button>{selecting&&canSelect&&<label className="album-photo-checkbox"><input type="checkbox" aria-label={`Select photo ${position+1}`} checked={checked} onChange={()=>toggle(item)}/></label>}</div>
+          <figcaption>{photo.caption&&<p>{photo.caption}</p>}{!readOnly&&<button onClick={()=>onStory(entry)}>{entry.title} <ArrowUpRight size={12}/></button>}{!readOnly&&<time dateTime={entry.date}>{new Date(entry.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</time>}</figcaption>
+        </figure>
+      })}</div>
+    </>:<div className="empty-state album-upload-empty"><ImagePlus size={43} strokeWidth={1}/><h3>Your album is ready.</h3><p>Add your first photos from {album.place}.</p>{!readOnly&&<button className="primary" onClick={onAdd}><Plus size={15}/> Upload photos</button>}</div>}
+    <div className="album-dialog-footer"><span>{readOnly?'Photos':'Photos and notes'} from {album.place}.</span><button className="text-button" onClick={onClose}>Back to my places <ArrowRight size={15}/></button></div>
+    {confirming&&canSelect&&<Modal label="Remove selected photos" className="remove-photo-modal" onClose={()=>{if(!busy)setConfirming(false)}}><div className="remove-photo-content">
+      <div className={'remove-photo-previews '+(selectedPhotos.length===1?'single':'')}>{selectedPhotos.map(item=><img key={photoKey(item)} src={albumImage(item)} alt={item.photo.caption||item.entry.title}/>)}</div>
+      <h2>Remove {selectedPhotos.length===1?'this photo':`these ${selectedPhotos.length} photos`}?</h2>
+      <p>This permanently deletes the selected {selectedPhotos.length===1?'photo':'photos'} from your journal and shared album. Your other photos and notes stay.</p>
+      {removeError&&<p className="error-box" role="alert">{removeError}</p>}
+      <div className="remove-photo-actions"><button className="secondary" type="button" autoFocus disabled={busy} onClick={()=>setConfirming(false)}>Keep selected</button><button className="danger" type="button" disabled={busy||!selectedPhotos.length} onClick={()=>void confirmRemove()}><Trash2 size={15}/>{busy?'Removing...':`Remove ${selectedPhotos.length} ${selectedPhotos.length===1?'photo':'photos'}`}</button></div>
+    </div></Modal>}
   </>;
 }

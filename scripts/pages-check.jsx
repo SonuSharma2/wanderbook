@@ -123,20 +123,31 @@ const uploaded=(await reopened.list())[0];
 assert.equal(uploaded.location,'Panchpokhari');
 assert.deepEqual(Buffer.from(await(await fetch(uploaded.photos[0].url)).arrayBuffer()),bytes,'album upload preserves photo bytes');
 assert.equal((await(await fetch(uploaded.photos[1].url)).blob()).type,'image/jpeg','HEIC is stored as a universally viewable JPEG');
-assert.equal(container.querySelectorAll('.album-remove-photo').length,2,'each owner album photo has a visible remove control');
-await click(container.querySelector('.album-remove-photo'));
-assert.ok(container.querySelector('dialog[aria-label="Remove photo"]'),'removing a photo requires confirmation');
+assert.equal(container.querySelectorAll('.album-remove-photo').length,0,'per-photo remove buttons are replaced with selection mode');
+await click(textButton('Select photos'));
+assert.equal(container.querySelectorAll('input[type="checkbox"]').length,2,'selection mode offers a checkbox on each photo');
+assert.ok(textButton('Remove selected (0)').disabled,'removing an empty selection is disabled');
+await click(textButton('Select all'));assert.match(container.querySelector('.album-selection-toolbar [role="status"]').textContent,/2 selected/);
+await click(textButton('Clear selection'));assert.match(container.querySelector('.album-selection-toolbar [role="status"]').textContent,/0 selected/);
+await click(container.querySelector('.album-photo-button'));
+assert.match(container.querySelector('.album-selection-toolbar [role="status"]').textContent,/1 selected/);
+assert.equal(container.querySelector('dialog[aria-label="Photo gallery"]'),null,'tapping a photo in selection mode selects it instead of opening the gallery');
+await click(container.querySelector('[aria-label="Cancel photo selection"]'));
+await click(textButton('Select photos'));assert.ok(textButton('Remove selected (0)').disabled,'cancelling selection clears the selected photos');
+await click(container.querySelector('input[aria-label="Select photo 1"]'));
+await click(textButton('Remove selected (1)'));
+assert.ok(container.querySelector('dialog[aria-label="Remove selected photos"]'),'removing the selection requires confirmation');
 assert.equal((await reopened.list())[0].photos.length,2,'opening confirmation does not delete anything');
-await click(textButton('Keep photo'));
+await click(textButton('Keep selected'));
 assert.equal((await reopened.list())[0].photos.length,2,'cancel keeps both saved photos');
 const normalSave=reopened.save;
 reopened.save=async()=>{throw Error('Connection interrupted. Try again.')};
-await click(container.querySelector('.album-remove-photo'));await click(textButton('Remove photo'));
+await click(textButton('Remove selected (1)'));await click(textButton('Remove 1 photo'));
 assert.match(container.querySelector('.remove-photo-modal [role="alert"]').textContent,/Connection interrupted/);
 assert.equal(container.querySelectorAll('.album-photo-button').length,2,'failed removal leaves the album intact');
 reopened.save=normalSave;
-await click(textButton('Remove photo'));
-assert.equal(container.querySelector('dialog[aria-label="Remove photo"]'),null,'successful removal closes confirmation');
+await click(textButton('Remove 1 photo'));
+assert.equal(container.querySelector('dialog[aria-label="Remove selected photos"]'),null,'successful removal closes confirmation');
 assert.equal(container.querySelectorAll('.album-photo-button').length,1,'only the selected photo leaves the album');
 const afterRemoval=(await reopened.list())[0];
 assert.deepEqual(afterRemoval.photos.map(photo=>photo.id),[uploaded.photos[1].id]);
@@ -157,17 +168,17 @@ await act(async()=>restoreInput.dispatchEvent(new window.Event('change',{bubbles
 assert.equal(container.querySelectorAll('.place-album').length,3,'restoring an album-only backup restores empty folders');
 assert.equal((await reopened.list()).length,1,'restoring empty folders leaves saved photos intact');
 assert.equal(backendRequests,0,'no cloud API is called in Pages mode');
-await click(container.querySelector('.album-remove-photo'));await click(textButton('Remove photo'));
+await click(textButton('Select photos'));await click(textButton('Select all'));await click(textButton('Remove selected (1)'));await click(textButton('Remove 1 photo'));
 assert.equal(container.querySelectorAll('.album-photo-button').length,0,'the last photo can be removed');
 assert.equal((await reopened.list())[0].photos.length,0,'last-photo removal persists');
 assert.equal((await reopened.list())[0].story,'Keep these trekking notes.','the memory and notes survive last-photo removal');
 assert.ok(container.querySelector('dialog[aria-label="Panchpokhari photo album"]'),'an empty album stays open for new uploads');
 
 // Cloud UI reads server records rather than the prior device's localStorage.
-let cloudEntries=[],cloudFolders=[];
+let cloudEntries=[],cloudFolders=[],failRemovalId=null;const cloudSaves=[];
 globalThis.fetch=async(path,options={})=>{
  if(path==='/api/entries'){
-  if(options.method==='POST'){const entry=JSON.parse(options.body.get('entry'));cloudEntries=[entry,...cloudEntries.filter(saved=>saved.id!==entry.id)];return Response.json(entry)}
+  if(options.method==='POST'){const entry=JSON.parse(options.body.get('entry'));cloudSaves.push(entry.id);if(entry.id===failRemovalId)return Response.json({error:'Connection interrupted. Try again.'},{status:503});cloudEntries=[entry,...cloudEntries.filter(saved=>saved.id!==entry.id)];return Response.json(entry)}
   return Response.json(cloudEntries);
  }
  if(path==='/api/albums'){
@@ -192,15 +203,31 @@ assert.equal(container.querySelector('dialog[aria-label="Import device journal"]
 await act(async()=>root.render(<Journal key="cloud-phone" signedIn name="My account" starterAlbums={starterAlbums}/>));await settle();
 assert.equal(container.querySelectorAll('.memory-card').length,1,'a second cloud UI instance loads the server journal');
 assert.equal(container.querySelectorAll('.place-album').length,2,'a second cloud UI instance loads server albums');
+const firstVisitId=cloudEntries[0].id,secondVisitId=crypto.randomUUID();
+cloudEntries[0]={...cloudEntries[0],photos:[...cloudEntries[0].photos,{id:crypto.randomUUID(),caption:'Another photo from the first visit'}]};
+cloudEntries.push({...cloudEntries[0],id:secondVisitId,date:'2026-10-16',story:'Keep the second visit notes.',photos:[{id:crypto.randomUUID(),caption:'Photo from a second visit'}]});
+await click(container.querySelector('[aria-label="Refresh cloud journal"]'));
 await click(container.querySelector('[aria-label^="Open album: Panchpokhari"]'));
-await click(container.querySelector('.album-remove-photo'));await click(textButton('Remove photo'));
-assert.equal(cloudEntries[0].photos.length,0,'owner removal updates the cloud entry using the existing save API');
-assert.equal(cloudEntries[0].story,entry.story,'cloud photo removal keeps private notes');
-assert.equal(container.querySelectorAll('.album-photo-button').length,0,'the cloud album reflects removal');
+assert.equal(container.querySelectorAll('.album-photo-button').length,3);
+await click(textButton('Select photos'));await click(textButton('Select all'));
+assert.equal(container.querySelectorAll('input[type="checkbox"]:checked').length,3,'Select all includes photos from different visits');
+failRemovalId=secondVisitId;cloudSaves.length=0;
+await click(textButton('Remove selected (3)'));await click(textButton('Remove 3 photos'));
+assert.match(container.querySelector('.remove-photo-modal [role="alert"]').textContent,/2 photos were removed.*1 photo could not be removed/,'partial removal reports what succeeded and failed');
+assert.equal(cloudEntries.find(saved=>saved.id===firstVisitId).photos.length,0,'multiple selected photos from one visit are removed together');
+assert.equal(cloudEntries.find(saved=>saved.id===secondVisitId).photos.length,1,'the failed visit still has its photo');
+assert.equal(cloudSaves.filter(id=>id===firstVisitId).length,1,'each visit is saved once during bulk removal');
+assert.equal(container.querySelectorAll('input[type="checkbox"]:checked').length,1,'only failed photos stay selected for retry');
+failRemovalId=null;await click(textButton('Remove 1 photo'));
+assert.equal(cloudSaves.filter(id=>id===firstVisitId).length,1,'retry never restores or resaves already removed photos');
+assert.ok(cloudEntries.every(saved=>saved.photos.length===0),'retry removes all remaining selected photos');
+assert.equal(cloudEntries.find(saved=>saved.id===firstVisitId).story,entry.story,'bulk removal preserves first-visit notes');
+assert.equal(cloudEntries.find(saved=>saved.id===secondVisitId).story,'Keep the second visit notes.','bulk removal preserves second-visit notes');
+assert.equal(container.querySelectorAll('.album-photo-button').length,0,'the cloud album reflects bulk removal');
 await click(container.querySelector('[aria-label="Close place album"]'));
 cloudEntries.push({...cloudEntries[0],id:crypto.randomUUID(),title:'A phone upload'});
 await click(container.querySelector('[aria-label="Refresh cloud journal"]'));
-assert.equal(container.querySelectorAll('.memory-card').length,2,'refresh retrieves new records from another device');
+assert.equal(container.querySelectorAll('.memory-card').length,3,'refresh retrieves new records from another device');
 cloudEntries=[];
 await act(async()=>window.dispatchEvent(new window.Event('focus')));await settle();
 assert.equal(container.querySelectorAll('.memory-card').length,0,'returning to the tab refreshes cloud records');
